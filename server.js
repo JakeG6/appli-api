@@ -27,11 +27,12 @@ app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 
- 
+//hello world
 app.get('/', function (req, res) {
   res.send('the Appli API is functioning')
 })
 
+//get all users
 app.get('/users/all', function (req, res,) {
 
   db.getConnection(function(err, connection) {
@@ -49,8 +50,31 @@ app.get('/users/all', function (req, res,) {
   }); 
 })
 
-//attempt to log in
+//check if new username is unique
+app.get('/checkuniquename/:username', (req, res) => {
 
+  let newUsername = req.params.username
+
+  db.getConnection(function(err, connection) {
+    if (err) throw err;
+    connection.query(`SELECT * FROM users WHERE username = "${newUsername}"`,
+      function (err, dbResponse) {
+        if(err) {
+            console.log("error: ", err) 
+        }
+        else{
+          if (dbResponse[0]) {
+            res.send(false)
+          }
+          else {
+            res.send(true)}
+        }
+      })  
+  });
+
+})
+
+//attempt to log in
 app.get('/login', (req, res) => {
 
   let username = req.query.username
@@ -76,6 +100,7 @@ app.get('/login', (req, res) => {
   });
 })
 
+//create a new user
 app.post('/createuser', (req, res) => {
   let username = req.body.username
   let password = req.body.password
@@ -96,6 +121,36 @@ app.post('/createuser', (req, res) => {
 
 })
 
+//create a new application ticket
+app.post('/createticket', (req, res) => {
+  let userId= null
+  company= req.body.companyName
+  position= req.body.position
+  resumeLink= req.body.resumeLink
+  includesCoverLetter= req.body.includesCoverLetter
+  applicationNotes= req.body.applicationNotes
+  calledForInterview= req.body.calledForInterview
+  jobOffered= req.body.jobOffered
+  acceptedOffer= req.body.acceptedOffer
+  timeStamp= req.body.timeStamp
+  archived= req.body.archived
+
+          db.getConnection(function(err, connection) {
+            if (err) throw err
+            connection.query(`INSERT INTO users (username, password) VALUES ("${username}", "${password}")`,
+              function (err, dbResponse) {
+                if (err) {
+                  console.log("error: ", err)
+                }
+                else {
+                  res.send(dbResponse)
+                }
+              })
+          })
+
+})
+
+//gracefully shut down
 process.on( 'SIGINT', () => {
   console.log( "\nGracefully shutting down from SIGINT (Ctrl-C)" );
   // some other closing procedures go here
