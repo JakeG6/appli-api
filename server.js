@@ -3,7 +3,10 @@ var cors = require('cors')
 
 const mysql = require('mysql')
 const app = express()
+const router = express.Router()
 const bodyParser = require('body-parser')
+const passport = require('passport') 
+const LocalStrategy = require('passport-local').Strategy;
 
 const db = mysql.createPool({
   connectionLimit : 20,
@@ -100,6 +103,9 @@ app.get('/login', (req, res) => {
   });
 })
 
+//attempt to log in with correct validation using passport
+//app.get('/validatedlogin')
+
 //create a new user
 app.post('/createuser', (req, res) => {
   let username = req.body.username
@@ -121,34 +127,36 @@ app.post('/createuser', (req, res) => {
 
 })
 
-//create a new application ticket
+//create a new job application ticket
 app.post('/createticket', (req, res) => {
-  let userId= null
-  company= req.body.companyName
-  position= req.body.position
-  resumeLink= req.body.resumeLink
-  includesCoverLetter= req.body.includesCoverLetter
-  applicationNotes= req.body.applicationNotes
-  calledForInterview= req.body.calledForInterview
-  jobOffered= req.body.jobOffered
-  acceptedOffer= req.body.acceptedOffer
-  timeStamp= req.body.timeStamp
-  archived= req.body.archived
+  let userId = req.body.userId,
+      company = req.body.companyName,
+      position = req.body.position,
+      resumeLink = req.body.resumeLink,
+      includesCoverLetter = req.body.includesCoverLetter ? 1 : 0,
+      applicationNotes = req.body.applicationNotes,
+      calledForInterview = req.body.calledForInterview ? 1 : 0,
+      jobOffered = req.body.jobOffered ? 1 : 0,
+      acceptedOffer = req.body.acceptedOffer ? 1 : 0,
+      archived = false;
 
-          db.getConnection(function(err, connection) {
-            if (err) throw err
-            connection.query(`INSERT INTO users (username, password) VALUES ("${username}", "${password}")`,
-              function (err, dbResponse) {
-                if (err) {
-                  console.log("error: ", err)
-                }
-                else {
-                  res.send(dbResponse)
-                }
-              })
-          })
-
-})
+  db.getConnection(function(err, connection) {
+    if (err) throw err
+    connection.query(`INSERT INTO appli_tickets 
+    (user_id, company, position, resume_link, includes_cover_letter,
+    application_notes, called_for_interview, job_offered, accepted_offer, archived) 
+        VALUES (${userId}, "${company}", "${position}", "${resumeLink}", ${includesCoverLetter},
+        "${applicationNotes}", ${calledForInterview}, ${jobOffered}, ${acceptedOffer}, ${archived})`,
+      function (err, dbResponse) {
+        if (err) {
+          console.log("error: ", err)
+        }
+        else {
+          res.send(dbResponse)
+        }
+      })
+    })
+  })
 
 //gracefully shut down
 process.on( 'SIGINT', () => {
