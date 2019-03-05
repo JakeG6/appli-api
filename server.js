@@ -80,10 +80,6 @@ passport.deserializeUser(function(id, done) {
           }
       })
   })
-  //connection.query(`SELECT * from users WHERE user_id =  ${user.user_id}`, function(err, rows){	
-      //done(null,user);
-  //});
-  //done(null, id);
 });
 
 app.get('/auth/check', (req, res) => {
