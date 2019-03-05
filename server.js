@@ -36,7 +36,7 @@ passport.use(
                   return done(err)
               }
               else{
-                  console.log("let's check if the username and password match in the database")      
+                  console.log("let's check if we got the user_id")      
                   if (dbResponse[0]) {
                       console.log(dbResponse[0].user_id)
                       done(null, dbResponse[0].user_id)
