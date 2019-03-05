@@ -1,37 +1,110 @@
 const express = require('express')
+const session = require('express-session');
+
 var cors = require('cors')
 
 const mysql = require('mysql')
 const app = express()
 const router = express.Router()
 const bodyParser = require('body-parser')
-const passport = require('passport') 
+const passport = require('passport')
 const LocalStrategy = require('passport-local').Strategy;
+//const db = require('./db.js') 
+//require('./passportStuff');
+const db = require('./db.js')
 
-const db = mysql.createPool({
-  connectionLimit : 20,
-  host            : 'us-cdbr-iron-east-03.cleardb.net',
-  user            : 'bbf3049ec788cd',
-  password        : 'c3a0d3b8',
-  database        : 'heroku_125e5b843934f78'
-});
-
-db.getConnection(function(err) {
-  if (err) throw err;
-
-});
-
-
-// Cors
 app.use(cors())
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
+//mandatory passport/js middleware
+app.use(session({ secret: 'some-random-string', saveUninitialized: true, resave: false, cookie: {secure: false} }));
+app.use(passport.initialize())
+app.use(passport.session());
+
+passport.use(
+  new LocalStrategy(
+  function(username, password, done) {
+      db.getConnection(function(err, connection) {
+          if (err) throw err;
+          connection.query(
+          `SELECT * FROM users WHERE username = "${username}" && password="${password}"`,
+          function (err, dbResponse) {
+              if(err) {
+                  return done(err)
+              }
+              else{
+                  console.log("let's check if the username and password match in the database")      
+                  if (dbResponse[0]) {
+                      console.log(dbResponse[0].user_id)
+                      done(null, dbResponse[0].user_id)
+                  } else {
+                       done(null, "invalid credentials")
+                  }
+              }
+          })
+      });
+  })
+)
+
+// used to serialize the user for the session
+passport.serializeUser(function(userId, done) {
+  
+  console.log('the user.id is ' + userId)
+  done(null, userId);
+});
+
+//used to deserialize the user
+passport.deserializeUser(function(id, done) {
+  
+  console.log("let's check to deserialize!")
+  
+  db.getConnection(function(err, connection) {
+      if (err) throw err;
+      connection.query(
+      `SELECT * from users WHERE user_id =  ${id}`,
+      function (err, dbResponse) {
+          if(err) {
+              return done(err)
+          }
+          else{
+              console.log("let's check if the id matches in the database")      
+              if (dbResponse[0]) {
+                  console.log(dbResponse[0])
+                  done(null, dbResponse[0])
+              } else {
+                   done(null, "invalid credentials")
+              }
+          }
+      })
+  })
+  //connection.query(`SELECT * from users WHERE user_id =  ${user.user_id}`, function(err, rows){	
+      //done(null,user);
+  //});
+  //done(null, id);
+});
+
+app.get('/auth/check', (req, res) => {
+  if (!req.user) {
+    return res.sendStatus(401)
+  } else {
+    return res.status(200).send(req.user)
+  }
+});
+
+
+
+
+
+
+
+
 
 //hello world
-app.get('/', function (req, res) {
+app.get('/hello', function (req, res) {
+  console.log("hello, ", req.user)
   res.send('the Appli API is functioning')
 })
 
@@ -78,33 +151,18 @@ app.get('/checkuniquename/:username', (req, res) => {
 })
 
 //attempt to log in
-app.get('/login', (req, res) => {
+app.post('/login', passport.authenticate('local', { failureRedirect: '/' }),
+  function(req, res) {
+    console.log(req.session.user_id)
+    req.session.user_id = 1
+    console.log(req.session.user_id)
+    return res.sendStatus(200)
+}); 
 
-  let username = req.query.username
-  let password = req.query.password
-
-  db.getConnection(function(err, connection) {
-    if (err) throw err;
-    connection.query(
-      `SELECT * FROM users WHERE username = ${username} AND password = ${password}`,
-      function (err, dbResponse) {
-        if(err) {
-            console.log("error: ", err) 
-        }
-        else{
-          console.log("let's check if the username and password match in the database")      
-          if (dbResponse[0]) {
-            console.log(true)
-            res.send(dbResponse[0])
-          }
-          else {res.send(false)}
-        }
-      })  
-  });
-})
-
-//attempt to log in with correct validation using passport
-//app.get('/validatedlogin')
+app.get('/logout', function(req, res){
+  req.logout();
+  res.redirect('/');
+});
 
 //create a new user
 app.post('/createuser', (req, res) => {
