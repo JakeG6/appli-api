@@ -1,5 +1,8 @@
 const express = require('express')
 const session = require('express-session');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken')
+
 
 var cors = require('cors')
 
@@ -10,7 +13,7 @@ const bodyParser = require('body-parser')
 const passport = require('passport')
 const LocalStrategy = require('passport-local').Strategy;
 //const db = require('./db.js') 
-//require('./passportStuff');
+require('./passportStuff');
 const db = require('./db.js')
 
 app.use(cors())
@@ -20,67 +23,11 @@ app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 //mandatory passport/js middleware
-app.use(session({ secret: 'some-random-string', saveUninitialized: true, resave: false, cookie: {secure: false} }));
+//app.use(session({ secret: 'some-random-string', saveUninitialized: true, resave: false, cookie: {secure: false} }));
 app.use(passport.initialize())
-app.use(passport.session());
+//app.use(passport.session());
 
-passport.use(
-  new LocalStrategy(
-  function(username, password, done) {
-      db.getConnection(function(err, connection) {
-          if (err) throw err;
-          connection.query(
-          `SELECT * FROM users WHERE username = "${username}" && password="${password}"`,
-          function (err, dbResponse) {
-              if(err) {
-                  return done(err)
-              }
-              else{
-                  console.log("let's check if we got the user_id")      
-                  if (dbResponse[0]) {
-                      console.log(dbResponse[0].user_id)
-                      done(null, dbResponse[0].user_id)
-                  } else {
-                       done(null, "invalid credentials")
-                  }
-              }
-          })
-      });
-  })
-)
 
-// used to serialize the user for the session
-passport.serializeUser(function(userId, done) {
-  
-  console.log('the user.id is ' + userId)
-  done(null, userId);
-});
-
-//used to deserialize the user
-passport.deserializeUser(function(id, done) {
-  
-  console.log("let's check to deserialize!")
-  
-  db.getConnection(function(err, connection) {
-      if (err) throw err;
-      connection.query(
-      `SELECT * from users WHERE user_id =  ${id}`,
-      function (err, dbResponse) {
-          if(err) {
-              return done(err)
-          }
-          else{
-              console.log("let's check if the id matches in the database")      
-              if (dbResponse[0]) {
-                  console.log(dbResponse[0])
-                  done(null, dbResponse[0])
-              } else {
-                   done(null, "invalid credentials")
-              }
-          }
-      })
-  })
-});
 
 app.get('/auth/check', (req, res) => {
   if (!req.user) {
@@ -89,14 +36,6 @@ app.get('/auth/check', (req, res) => {
     return res.status(200).send(req.user)
   }
 });
-
-
-
-
-
-
-
-
 
 //hello world
 app.get('/hello', function (req, res) {
@@ -126,7 +65,7 @@ app.get('/users/all', function (req, res,) {
 app.get('/checkuniquename/:username', (req, res) => {
 
   let newUsername = req.params.username
-
+  console.log("we're about to check if the username exists")
   db.getConnection(function(err, connection) {
     if (err) throw err;
     connection.query(`SELECT * FROM users WHERE username = "${newUsername}"`,
@@ -149,10 +88,10 @@ app.get('/checkuniquename/:username', (req, res) => {
 //attempt to log in
 app.post('/login', passport.authenticate('local', { failureRedirect: '/' }),
   function(req, res) {
-    console.log(req.session.user_id)
-    req.session.user_id = 1
-    console.log(req.session.user_id)
-    return res.sendStatus(200)
+    console.log(req);
+    console.log(res);
+    //console.log(req.session.user)
+    //return res.sendStatus(200)
 }); 
 
 app.get('/logout', function(req, res){
@@ -166,19 +105,23 @@ app.post('/createuser', (req, res) => {
   let password = req.body.password
   console.log(`the body is ${username} and ${password}`)
 
-  db.getConnection(function(err, connection) {
-    if (err) throw err
-    connection.query(`INSERT INTO users (username, password) VALUES ("${username}", "${password}")`,
-      function (err, dbResponse) {
-        if (err) {
-          console.log("error: ", err)
-        }
-        else {
-          res.send(dbResponse)
-        }
-      })
-  })
-
+  bcrypt.hash(password, 10, function(err, hash) {
+    // Store hash in your password DB.
+    db.getConnection(function(err, connection) {
+      if (err) throw err
+      connection.query(`INSERT INTO users (username, password) VALUES ("${username}", "${hash}")`,
+        function (err, dbResponse) {
+          if (err) {
+            console.log("error: ", err)
+          }
+          else {
+            
+            console.log(dbResponse)
+            res.send(dbResponse)
+          }
+        })
+    })
+  });
 })
 
 //create a new job application ticket
