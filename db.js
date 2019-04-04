@@ -1,16 +1,17 @@
 const mysql = require('mysql') 
 
 const db = mysql.createPool({
-    connectionLimit : 20,
+    connectionLimit : 10,
     host            : 'us-cdbr-iron-east-03.cleardb.net',
     user            : 'bbf3049ec788cd',
     password        : 'c3a0d3b8',
     database        : 'heroku_125e5b843934f78'
 });
   
-db.getConnection(function(err) {
-    if (err) throw err;
+// db.getConnection(function(err) {
+//     if (err) throw err;
 
-});
+// });
 
 module.exports = db
+
