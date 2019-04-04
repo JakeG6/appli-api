@@ -2,7 +2,7 @@ const express = require('express')
 const session = require('express-session');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
-
+const keys = require('./keys')
 
 var cors = require('cors')
 
@@ -21,13 +21,6 @@ app.use(cors())
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
-
-//mandatory passport/js middleware
-//app.use(session({ secret: 'some-random-string', saveUninitialized: true, resave: false, cookie: {secure: false} }));
-app.use(passport.initialize())
-//app.use(passport.session());
-
-
 
 app.get('/auth/check', (req, res) => {
   if (!req.user) {
@@ -67,6 +60,8 @@ app.get('/checkuniquename/:username', (req, res) => {
   let newUsername = req.params.username
   console.log("we're about to check if the username exists")
   db.getConnection(function(err, connection) {
+    connection.release();
+
     if (err) throw err;
     connection.query(`SELECT * FROM users WHERE username = "${newUsername}"`,
       function (err, dbResponse) {
@@ -86,13 +81,58 @@ app.get('/checkuniquename/:username', (req, res) => {
 })
 
 //attempt to log in
-app.post('/login', passport.authenticate('local', { failureRedirect: '/' }),
-  function(req, res) {
-    console.log(req);
-    console.log(res);
-    //console.log(req.session.user)
-    //return res.sendStatus(200)
-}); 
+app.post('/login', function(req, res) {
+  
+  const username = req.body.username
+  const password = req.body.password
+  
+  db.getConnection(function(err, connection) {
+    connection.release();
+
+    if (err) throw err;
+    connection.query(`SELECT * FROM users WHERE username = "${username}"`, function (err, user) {
+      console.log(`here is the hash in the db: ${user[0].password}`)
+      
+      if(err || !user) {
+        return res.status(404).json({username: 'User not found'})
+      }
+
+      console.log('we will compare: ', password, user[0].password)
+      
+      bcrypt.compare(password, user[0].password, (err, result) => {
+        
+        if(err) {console.log(err)}
+
+        if (result) {
+          console.log("Passwords match")
+
+          // Create JWT Payload
+          const payload = { id: user[0].user_id, name: user[0].username } 
+
+          // Sign and send out the token
+          jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
+            
+            res.json({success: true, token:  token,})
+          
+          });
+
+        }
+        else {
+          
+          return res.status(404).json({username: `password doesn't match`})
+        }
+      })
+    })
+  });
+});
+
+app.get('/isauthorized', passport.authenticate('jwt', { session: false }), (req, res) => {
+  res.json(req.user)
+})
+
+app.get('/currentuser', passport.authenticate('jwt', { session: false }), (req, res) => {
+  res.json(req.user)
+})
 
 app.get('/logout', function(req, res){
   req.logout();
@@ -107,10 +147,14 @@ app.post('/createuser', (req, res) => {
 
   bcrypt.hash(password, 10, function(err, hash) {
     // Store hash in your password DB.
+    console.log(hash)
     db.getConnection(function(err, connection) {
+      //connection.release();
+
       if (err) throw err
       connection.query(`INSERT INTO users (username, password) VALUES ("${username}", "${hash}")`,
         function (err, dbResponse) {
+          connection.release();
           if (err) {
             console.log("error: ", err)
           }
@@ -135,9 +179,11 @@ app.post('/createticket', (req, res) => {
       calledForInterview = req.body.calledForInterview ? 1 : 0,
       jobOffered = req.body.jobOffered ? 1 : 0,
       acceptedOffer = req.body.acceptedOffer ? 1 : 0,
-      archived = false;
+      archived = req.body.archived;
 
   db.getConnection(function(err, connection) {
+    connection.release();
+
     if (err) throw err
     connection.query(`INSERT INTO appli_tickets 
     (user_id, company, position, resume_link, includes_cover_letter,
@@ -152,8 +198,117 @@ app.post('/createticket', (req, res) => {
           res.send(dbResponse)
         }
       })
-    })
   })
+})
+
+//Retrieve tickets from DB by user_id
+app.get('/retrievetickets/:archived', passport.authenticate('jwt', { session: false }), (req,res) =>{
+
+  db.getConnection(function(err, connection) {
+    connection.release();
+
+    let sqlString
+    
+    if (req.params.archived == "showarchived") {
+      sqlString = `SELECT * FROM appli_tickets WHERE ${req.user[0].user_id} = user_id`
+
+    }
+    else {
+      sqlString = `SELECT * FROM appli_tickets WHERE ${req.user[0].user_id} = user_id AND archived = 0`
+
+    }
+
+    if (err) throw err
+    connection.query(sqlString, function (err, dbResponse) {
+        if (err) {
+          console.log("error: ", err)
+        }
+        else {
+          res.send(dbResponse)
+        }
+      })
+  })
+})
+
+//Retrieve one ticket by ticket_id
+app.get('/retrieveticketbyid/:ticket_id', (req, res) => {
+  db.getConnection(function(err, connection) {
+    connection.release();
+
+    if (err) throw err
+    connection.query(`SELECT * FROM appli_tickets WHERE ticket_id = ${req.params.ticket_id}`,
+      function (err, dbResponse) {
+        if (err) {
+          console.log("error: ", err)
+        }
+        else {
+          res.send(dbResponse)
+        }
+      }
+    )
+  })
+})
+
+//Update Ticket in DB
+app.put('/updateticket/:ticket_id', passport.authenticate('jwt', { session: false }), (req, res) => {
+  let ticketId = req.params.ticket_id,
+      company = req.body.companyName,
+      position = req.body.position,
+      resumeLink = req.body.resumeLink,
+      includesCoverLetter = req.body.includesCoverLetter ? 1 : 0,
+      applicationNotes = req.body.applicationNotes,
+      calledForInterview = req.body.calledForInterview ? 1 : 0,
+      jobOffered = req.body.jobOffered ? 1 : 0,
+      acceptedOffer = req.body.acceptedOffer ? 1 : 0,
+      archived = req.body.archived ? 1 : 0;
+
+      db.getConnection(function(err, connection) {
+        connection.release();
+    
+        if (err) throw err
+        connection.query(
+          `UPDATE appli_tickets 
+          SET company = "${company}", position = "${position}", resume_link = "${resumeLink}",
+          includes_cover_letter = ${includesCoverLetter}, application_notes = "${applicationNotes}",
+          called_for_interview = ${calledForInterview}, job_offered = ${jobOffered},
+          accepted_offer = ${acceptedOffer}, archived = ${archived}
+          WHERE ticket_id = ${ticketId}`,
+          function (err, dbResponse) {
+            if (err) {
+              console.log("error: ", err)
+            }
+            else {
+              console.log('we updated the ticket')
+              res.send(dbResponse)
+            }
+          })
+      })
+
+
+
+})
+
+//Delete Ticket in DB
+app.delete('/deleteticket/:ticket_id', passport.authenticate('jwt', { session: false }), (req, res) =>{
+
+  let ticketId = req.params.ticket_id
+
+  db.getConnection(function(err, connection) {
+    connection.release();
+
+    if (err) throw err
+    connection.query(`DELETE FROM appli_tickets WHERE ticket_id = ${ticketId}`,
+      function (err, dbResponse) {
+        if (err) {
+          console.log("error: ", err)
+        }
+        else {
+          res.send(dbResponse)
+        }
+      })
+  })
+
+})
 
 //gracefully shut down
 process.on( 'SIGINT', () => {

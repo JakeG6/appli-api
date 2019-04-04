@@ -1,69 +1,46 @@
 const passport = require('passport') 
-const LocalStrategy = require('passport-local').Strategy;
 const db = require('./db.js')
 require('./server.js')
 
-passport.use(
-    new LocalStrategy(
-    function(username, password, done) {
-        console.log('we are in the localstrategy. we are going to search the db')
-        db.getConnection(function(err, connection) {
-            if (err) throw err;
-            connection.query(
-            `SELECT * FROM users WHERE username = "${username}" && password="${password}"`,
-            function (err, dbResponse) {
-                if(err) {
-                    return done(err)
+const keys = require('./keys')
+const JwtStrategy = require('passport-jwt').Strategy
+const ExtractJwt = require('passport-jwt').ExtractJwt
+const opts = {
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey: keys.secretOrKey
+}
+
+
+passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
+    console.log(`the jwt_payload is ${jwt_payload}`)
+    console.log('we are in the jwt strategy. we are going to search the db')
+    db.getConnection(function(err, connection) {
+        if (err) throw err;
+        connection.query(
+        `SELECT * FROM users WHERE user_id = ${jwt_payload.id}`,
+        function (err, user) {
+            if(err) {
+                return done(err)
+            }
+            else{
+                console.log("let's check if we got the user")      
+                if (user) {
+                    console.log(user)
+                    return done(null, user)
+                } else {
+                    return done(null, false)
                 }
-                else{
-                    console.log("let's check if we got the user")      
-                    if (dbResponse[0]) {
-                        console.log(dbResponse[0])
-                        done(null, dbResponse[0])
-                    } else {
-                         done(null, "invalid credentials")
-                    }
-                }
-            })
-        });
-    })
-)
-  
-  // used to serialize the user for the session
-//   passport.serializeUser(function(userId, done) {
+            }
+        })
+    });
     
-//     console.log('the user.id is ' + userId)
-//     done(null, userId);
-//   });
-  
-  //used to deserialize the user
-//   passport.deserializeUser(function(id, done) {
-    
-//     console.log("let's check to deserialize!")
-    
-//     db.getConnection(function(err, connection) {
-//         if (err) throw err;
-//         connection.query(
-//         `SELECT * from users WHERE user_id =  ${id}`,
-//         function (err, dbResponse) {
-//             if(err) {
-//                 return done(err)
-//             }
-//             else{
-//                 console.log("let's check if the id matches in the database")      
-//                 if (dbResponse[0]) {
-//                     console.log(dbResponse[0])
-//                     done(null, dbResponse[0])
-//                 } else {
-//                      done(null, "invalid credentials")
-//                 }
-//             }
-//         })
-//     })
-//   });
-
-	
-
-
+    // Example:
+    // User.findById(jwt_payload.id).then(user => {
+    //     if(user){
+    //         return done(null, user);
+    //     }
+    //     return done(null,false);
+    // }).catch(err => console.log(err))
+}))
 
 module.exports = passport
