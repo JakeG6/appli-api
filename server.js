@@ -86,14 +86,14 @@ app.use('/updatepassword', updatePassword);
 //Gracefully shut down
 process.on( 'SIGINT', () => {
   console.log( "\nGracefully shutting down from SIGINT (Ctrl-C)" );
-  // some other closing procedures go here
+
   db.end(function(err) {
 
   })
   process.exit( );
 })
 
-const PORT = 4242 
-app.listen(PORT, () => {
-    console.log(`listing on ${PORT}`)
+const port = process.env.PORT || 4242 
+app.listen(port, () => {
+    console.log(`listing on ${port}`)
 })
