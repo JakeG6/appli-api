@@ -1,19 +1,15 @@
 const express = require('express')
-const session = require('express-session');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
 const keys = require('./keys')
 
 var cors = require('cors')
 
-const mysql = require('mysql')
 const app = express()
-const router = express.Router()
 const bodyParser = require('body-parser')
 const passport = require('passport')
-const LocalStrategy = require('passport-local').Strategy;
-//const db = require('./db.js') 
 require('./passportStuff');
+
 const db = require('./db.js')
 
 app.use(cors())
@@ -21,6 +17,7 @@ app.use(cors())
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+
 
 app.get('/auth/check', (req, res) => {
   if (!req.user) {
@@ -91,23 +88,19 @@ app.post('/login', function(req, res) {
 
     if (err) throw err;
     connection.query(`SELECT * FROM users WHERE username = "${username}"`, function (err, user) {
-      console.log(`here is the hash in the db: ${user[0].password}`)
-      
+      console.log(`here is the hash in the db: ${user[0].password}`)      
       if(err || !user) {
         return res.status(404).json({username: 'User not found'})
       }
-
-      console.log('we will compare: ', password, user[0].password)
-      
-      bcrypt.compare(password, user[0].password, (err, result) => {
-        
+      console.log('we will compare: ', password, user[0].password)      
+      bcrypt.compare(password, user[0].password, (err, result) => {       
         if(err) {console.log(err)}
 
         if (result) {
           console.log("Passwords match")
 
           // Create JWT Payload
-          const payload = { id: user[0].user_id, name: user[0].username } 
+          const payload = { id: user[0].user_id, name: user[0].username, color: user[0].color } 
 
           // Sign and send out the token
           jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
@@ -115,10 +108,8 @@ app.post('/login', function(req, res) {
             res.json({success: true, token:  token,})
           
           });
-
         }
-        else {
-          
+        else { 
           return res.status(404).json({username: `password doesn't match`})
         }
       })
@@ -220,13 +211,13 @@ app.get('/retrievetickets/:archived', passport.authenticate('jwt', { session: fa
 
     if (err) throw err
     connection.query(sqlString, function (err, dbResponse) {
-        if (err) {
-          console.log("error: ", err)
-        }
-        else {
-          res.send(dbResponse)
-        }
-      })
+      if (err) {
+        console.log("error: ", err)
+      }
+      else {
+        res.send(dbResponse)
+      }
+    })
   })
 })
 
@@ -262,30 +253,27 @@ app.put('/updateticket/:ticket_id', passport.authenticate('jwt', { session: fals
       acceptedOffer = req.body.acceptedOffer ? 1 : 0,
       archived = req.body.archived ? 1 : 0;
 
-      db.getConnection(function(err, connection) {
-        connection.release();
-    
-        if (err) throw err
-        connection.query(
-          `UPDATE appli_tickets 
-          SET company = "${company}", position = "${position}", resume_link = "${resumeLink}",
-          includes_cover_letter = ${includesCoverLetter}, application_notes = "${applicationNotes}",
-          called_for_interview = ${calledForInterview}, job_offered = ${jobOffered},
-          accepted_offer = ${acceptedOffer}, archived = ${archived}
-          WHERE ticket_id = ${ticketId}`,
-          function (err, dbResponse) {
-            if (err) {
-              console.log("error: ", err)
-            }
-            else {
-              console.log('we updated the ticket')
-              res.send(dbResponse)
-            }
-          })
-      })
+  db.getConnection(function(err, connection) {
+    connection.release();
 
-
-
+    if (err) throw err
+    connection.query(
+      `UPDATE appli_tickets 
+      SET company = "${company}", position = "${position}", resume_link = "${resumeLink}",
+      includes_cover_letter = ${includesCoverLetter}, application_notes = "${applicationNotes}",
+      called_for_interview = ${calledForInterview}, job_offered = ${jobOffered},
+      accepted_offer = ${acceptedOffer}, archived = ${archived}
+      WHERE ticket_id = ${ticketId}`,
+      function (err, dbResponse) {
+        if (err) {
+          console.log("error: ", err)
+        }
+        else {
+          console.log('we updated the ticket')
+          res.send(dbResponse)
+        }
+    })
+  })
 })
 
 //Delete Ticket in DB
@@ -295,7 +283,6 @@ app.delete('/deleteticket/:ticket_id', passport.authenticate('jwt', { session: f
 
   db.getConnection(function(err, connection) {
     connection.release();
-
     if (err) throw err
     connection.query(`DELETE FROM appli_tickets WHERE ticket_id = ${ticketId}`,
       function (err, dbResponse) {
@@ -307,8 +294,69 @@ app.delete('/deleteticket/:ticket_id', passport.authenticate('jwt', { session: f
         }
       })
   })
-
 })
+
+app.put('/updatepassword', 
+passport.authenticate('jwt', { session: false }),
+ (req, res) =>{
+
+  let username = req.body.username,
+  oldPassword = req.body.oldPassword,
+  newPassword = req.body.newPassword
+
+  db.getConnection(function(err, connection) {
+    connection.release();
+    if (err) throw err
+    
+    connection.query(`SELECT * FROM users WHERE username = "${username}"`, function (err, user) {
+      
+      console.log(`here is the hash in the db: ${user[0].password}`)      
+      
+      if(err || !user) {
+        return res.status(404).json({username: 'User not found'})
+      }
+      
+      console.log('we will compare: ', oldPassword, user[0].password)      
+      
+      bcrypt.compare(oldPassword, user[0].password, (err, result) => {       
+        
+        if(err) {
+          console.log(err); 
+          return res.send("Error: Incorrect Password")}
+
+        if (result) {
+          console.log(`Passwords match. eventually it will be replaced with ${newPassword}`)
+          //Passwords match. it will be replaced with the new password.
+          bcrypt.hash(newPassword, 10, function(err, hash) {
+            // Store hash in your password DB.
+            console.log(hash)
+            db.getConnection(function(err, connection) {
+              //connection.release();
+        
+              if (err) throw err
+              connection.query(`UPDATE users SET password = "${hash}" WHERE username = "${username}"`,
+                function (err, dbResponse) {
+                  connection.release();
+                  if (err) {
+                    console.log("error: ", err)
+                  }
+                  else {
+                    
+                    console.log(dbResponse)
+                    res.send(dbResponse)
+                  }
+              })
+            })
+          });
+        }
+        else { 
+          return res.status(404).json({username: `password doesn't match`})
+        }
+      })
+    })
+  })
+})
+
 
 //gracefully shut down
 process.on( 'SIGINT', () => {
@@ -319,8 +367,6 @@ process.on( 'SIGINT', () => {
   })
   process.exit( );
 })
-
-
 
 const PORT = 4242 
 app.listen(PORT, () => {
