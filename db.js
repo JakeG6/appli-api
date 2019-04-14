@@ -7,11 +7,6 @@ const db = mysql.createPool({
     password        : 'c3a0d3b8',
     database        : 'heroku_125e5b843934f78'
 });
-  
-// db.getConnection(function(err) {
-//     if (err) throw err;
-
-// });
 
 module.exports = db
 

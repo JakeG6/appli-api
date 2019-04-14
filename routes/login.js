@@ -8,7 +8,6 @@ const keys = require('../keys')
 var cors = require('cors')
 
 const bodyParser = require('body-parser')
-// const passport = require('passport')
 require('../passportStuff');
 
 const db = require('../db.js')

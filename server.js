@@ -11,9 +11,6 @@ const retrieveTickets = require('./routes/retrieveTickets.js')
 const retrieveTicketById = require('./routes/retrieveTicketById.js')
 const deleteTicket = require('./routes/deleteTicket.js')
 
-//const jwt = require('jsonwebtoken')
-//const keys = require('./keys')
-
 var cors = require('cors')
 
 const app = express()
