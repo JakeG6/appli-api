@@ -1,23 +1,33 @@
 const express = require('express')
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken')
-const keys = require('./keys')
+
+//API routes
+const login = require('./routes/login.js')
+const updatePassword = require('./routes/updatePassword.js')
+const createUser = require('./routes/createUser.js')
+const createTicket = require('./routes/createTicket.js')
+const updateTicket = require('./routes/updateTicket.js')
+const checkUniqueName = require('./routes/checkUniqueName.js')
+const retrieveTickets = require('./routes/retrieveTickets.js')
+const retrieveTicketById = require('./routes/retrieveTicketById.js')
+const deleteTicket = require('./routes/deleteTicket.js')
+
+//const jwt = require('jsonwebtoken')
+//const keys = require('./keys')
 
 var cors = require('cors')
 
 const app = express()
 const bodyParser = require('body-parser')
 const passport = require('passport')
-require('./passportStuff');
+require('./passportStuff')
 
 const db = require('./db.js')
 
 app.use(cors())
 
-// parse application/x-www-form-urlencoded
+//parse application/x-www-form-urlencoded
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
-
 
 app.get('/auth/check', (req, res) => {
   if (!req.user) {
@@ -27,338 +37,56 @@ app.get('/auth/check', (req, res) => {
   }
 });
 
-//hello world
-app.get('/hello', function (req, res) {
+//Hello world
+app.get('/', function (req, res) {
   console.log("hello, ", req.user)
   res.send('the Appli API is functioning')
 })
 
-//get all users
-app.get('/users/all', function (req, res,) {
+//Check if new username is unique
+app.use('/checkuniquename', checkUniqueName)
 
-  db.getConnection(function(err, connection) {
-    if (err) throw err; 
-    connection.query("SELECT * FROM users", function (err, dbResponse) {
-      connection.release();
-      if(err) {
-          console.log("error: ", err) 
-      }
-      else{
-        console.log("good job")
-        res.send(dbResponse)        
-      }
-    })
-  }); 
-})
+//Attempt to log in
+app.use('/login', login);
 
-//check if new username is unique
-app.get('/checkuniquename/:username', (req, res) => {
-
-  let newUsername = req.params.username
-  console.log("we're about to check if the username exists")
-  db.getConnection(function(err, connection) {
-    connection.release();
-
-    if (err) throw err;
-    connection.query(`SELECT * FROM users WHERE username = "${newUsername}"`,
-      function (err, dbResponse) {
-        if(err) {
-            console.log("error: ", err) 
-        }
-        else{
-          if (dbResponse[0]) {
-            res.send(false)
-          }
-          else {
-            res.send(true)}
-        }
-      })  
-  });
-
-})
-
-//attempt to log in
-app.post('/login', function(req, res) {
-  
-  const username = req.body.username
-  const password = req.body.password
-  
-  db.getConnection(function(err, connection) {
-    connection.release();
-
-    if (err) throw err;
-    connection.query(`SELECT * FROM users WHERE username = "${username}"`, function (err, user) {
-      console.log(`here is the hash in the db: ${user[0].password}`)      
-      if(err || !user) {
-        return res.status(404).json({username: 'User not found'})
-      }
-      console.log('we will compare: ', password, user[0].password)      
-      bcrypt.compare(password, user[0].password, (err, result) => {       
-        if(err) {console.log(err)}
-
-        if (result) {
-          console.log("Passwords match")
-
-          // Create JWT Payload
-          const payload = { id: user[0].user_id, name: user[0].username, color: user[0].color } 
-
-          // Sign and send out the token
-          jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
-            
-            res.json({success: true, token:  token,})
-          
-          });
-        }
-        else { 
-          return res.status(404).json({username: `password doesn't match`})
-        }
-      })
-    })
-  });
-});
-
+//Check if user is authorized
 app.get('/isauthorized', passport.authenticate('jwt', { session: false }), (req, res) => {
   res.json(req.user)
 })
 
+//Check current user
 app.get('/currentuser', passport.authenticate('jwt', { session: false }), (req, res) => {
   res.json(req.user)
 })
 
+//Attempt to log out
 app.get('/logout', function(req, res){
   req.logout();
   res.redirect('/');
 });
 
-//create a new user
-app.post('/createuser', (req, res) => {
-  let username = req.body.username
-  let password = req.body.password
-  console.log(`the body is ${username} and ${password}`)
+//Create a new user
+app.use('/createuser', createUser);
 
-  bcrypt.hash(password, 10, function(err, hash) {
-    // Store hash in your password DB.
-    console.log(hash)
-    db.getConnection(function(err, connection) {
-      //connection.release();
-
-      if (err) throw err
-      connection.query(`INSERT INTO users (username, password) VALUES ("${username}", "${hash}")`,
-        function (err, dbResponse) {
-          connection.release();
-          if (err) {
-            console.log("error: ", err)
-          }
-          else {
-            
-            console.log(dbResponse)
-            res.send(dbResponse)
-          }
-        })
-    })
-  });
-})
-
-//create a new job application ticket
-app.post('/createticket', (req, res) => {
-  let userId = req.body.userId,
-      company = req.body.companyName,
-      position = req.body.position,
-      resumeLink = req.body.resumeLink,
-      includesCoverLetter = req.body.includesCoverLetter ? 1 : 0,
-      applicationNotes = req.body.applicationNotes,
-      calledForInterview = req.body.calledForInterview ? 1 : 0,
-      jobOffered = req.body.jobOffered ? 1 : 0,
-      acceptedOffer = req.body.acceptedOffer ? 1 : 0,
-      archived = req.body.archived;
-
-  db.getConnection(function(err, connection) {
-    connection.release();
-
-    if (err) throw err
-    connection.query(`INSERT INTO appli_tickets 
-    (user_id, company, position, resume_link, includes_cover_letter,
-    application_notes, called_for_interview, job_offered, accepted_offer, archived) 
-        VALUES (${userId}, "${company}", "${position}", "${resumeLink}", ${includesCoverLetter},
-        "${applicationNotes}", ${calledForInterview}, ${jobOffered}, ${acceptedOffer}, ${archived})`,
-      function (err, dbResponse) {
-        if (err) {
-          console.log("error: ", err)
-        }
-        else {
-          res.send(dbResponse)
-        }
-      })
-  })
-})
+//Create a new job application ticket
+app.use('/createticket', createTicket);
 
 //Retrieve tickets from DB by user_id
-app.get('/retrievetickets/:archived', passport.authenticate('jwt', { session: false }), (req,res) =>{
-
-  db.getConnection(function(err, connection) {
-    connection.release();
-
-    let sqlString
-    
-    if (req.params.archived == "showarchived") {
-      sqlString = `SELECT * FROM appli_tickets WHERE ${req.user[0].user_id} = user_id`
-
-    }
-    else {
-      sqlString = `SELECT * FROM appli_tickets WHERE ${req.user[0].user_id} = user_id AND archived = 0`
-
-    }
-
-    if (err) throw err
-    connection.query(sqlString, function (err, dbResponse) {
-      if (err) {
-        console.log("error: ", err)
-      }
-      else {
-        res.send(dbResponse)
-      }
-    })
-  })
-})
+app.use('/retrievetickets', retrieveTickets)
 
 //Retrieve one ticket by ticket_id
-app.get('/retrieveticketbyid/:ticket_id', (req, res) => {
-  db.getConnection(function(err, connection) {
-    connection.release();
-
-    if (err) throw err
-    connection.query(`SELECT * FROM appli_tickets WHERE ticket_id = ${req.params.ticket_id}`,
-      function (err, dbResponse) {
-        if (err) {
-          console.log("error: ", err)
-        }
-        else {
-          res.send(dbResponse)
-        }
-      }
-    )
-  })
-})
+app.use('/retrieveticketbyid', retrieveTicketById)
 
 //Update Ticket in DB
-app.put('/updateticket/:ticket_id', passport.authenticate('jwt', { session: false }), (req, res) => {
-  let ticketId = req.params.ticket_id,
-      company = req.body.companyName,
-      position = req.body.position,
-      resumeLink = req.body.resumeLink,
-      includesCoverLetter = req.body.includesCoverLetter ? 1 : 0,
-      applicationNotes = req.body.applicationNotes,
-      calledForInterview = req.body.calledForInterview ? 1 : 0,
-      jobOffered = req.body.jobOffered ? 1 : 0,
-      acceptedOffer = req.body.acceptedOffer ? 1 : 0,
-      archived = req.body.archived ? 1 : 0;
-
-  db.getConnection(function(err, connection) {
-    connection.release();
-
-    if (err) throw err
-    connection.query(
-      `UPDATE appli_tickets 
-      SET company = "${company}", position = "${position}", resume_link = "${resumeLink}",
-      includes_cover_letter = ${includesCoverLetter}, application_notes = "${applicationNotes}",
-      called_for_interview = ${calledForInterview}, job_offered = ${jobOffered},
-      accepted_offer = ${acceptedOffer}, archived = ${archived}
-      WHERE ticket_id = ${ticketId}`,
-      function (err, dbResponse) {
-        if (err) {
-          console.log("error: ", err)
-        }
-        else {
-          console.log('we updated the ticket')
-          res.send(dbResponse)
-        }
-    })
-  })
-})
+app.use('/updateticket', updateTicket);
 
 //Delete Ticket in DB
-app.delete('/deleteticket/:ticket_id', passport.authenticate('jwt', { session: false }), (req, res) =>{
+app.use('/deleteticket', deleteTicket)
 
-  let ticketId = req.params.ticket_id
+//Update the Password
+app.use('/updatepassword', updatePassword);
 
-  db.getConnection(function(err, connection) {
-    connection.release();
-    if (err) throw err
-    connection.query(`DELETE FROM appli_tickets WHERE ticket_id = ${ticketId}`,
-      function (err, dbResponse) {
-        if (err) {
-          console.log("error: ", err)
-        }
-        else {
-          res.send(dbResponse)
-        }
-      })
-  })
-})
-
-app.put('/updatepassword', 
-passport.authenticate('jwt', { session: false }),
- (req, res) =>{
-
-  let username = req.body.username,
-  oldPassword = req.body.oldPassword,
-  newPassword = req.body.newPassword
-
-  db.getConnection(function(err, connection) {
-    connection.release();
-    if (err) throw err
-    
-    connection.query(`SELECT * FROM users WHERE username = "${username}"`, function (err, user) {
-      
-      console.log(`here is the hash in the db: ${user[0].password}`)      
-      
-      if(err || !user) {
-        return res.status(404).json({username: 'User not found'})
-      }
-      
-      console.log('we will compare: ', oldPassword, user[0].password)      
-      
-      bcrypt.compare(oldPassword, user[0].password, (err, result) => {       
-        
-        if(err) {
-          console.log(err); 
-          return res.send("Error: Incorrect Password")}
-
-        if (result) {
-          console.log(`Passwords match. eventually it will be replaced with ${newPassword}`)
-          //Passwords match. it will be replaced with the new password.
-          bcrypt.hash(newPassword, 10, function(err, hash) {
-            // Store hash in your password DB.
-            console.log(hash)
-            db.getConnection(function(err, connection) {
-              //connection.release();
-        
-              if (err) throw err
-              connection.query(`UPDATE users SET password = "${hash}" WHERE username = "${username}"`,
-                function (err, dbResponse) {
-                  connection.release();
-                  if (err) {
-                    console.log("error: ", err)
-                  }
-                  else {
-                    
-                    console.log(dbResponse)
-                    res.send(dbResponse)
-                  }
-              })
-            })
-          });
-        }
-        else { 
-          return res.status(404).json({username: `password doesn't match`})
-        }
-      })
-    })
-  })
-})
-
-
-//gracefully shut down
+//Gracefully shut down
 process.on( 'SIGINT', () => {
   console.log( "\nGracefully shutting down from SIGINT (Ctrl-C)" );
   // some other closing procedures go here

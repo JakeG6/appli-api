@@ -10,7 +10,6 @@ const opts = {
     secretOrKey: keys.secretOrKey
 }
 
-
 passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
     console.log(`the jwt_payload is ${jwt_payload}`)
     console.log('we are in the jwt strategy. we are going to search the db')
@@ -33,14 +32,7 @@ passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
             }
         })
     });
-    
-    // Example:
-    // User.findById(jwt_payload.id).then(user => {
-    //     if(user){
-    //         return done(null, user);
-    //     }
-    //     return done(null,false);
-    // }).catch(err => console.log(err))
+
 }))
 
 module.exports = passport
