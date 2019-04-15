@@ -26,6 +26,8 @@ router.get('/:ticket_id', (req, res) => {
             console.log("error: ", err)
           }
           else {
+            res.setHeader('Access-Control-Allow-Origin', 'https://appli-front.herokuapp.com/');
+
             res.send(dbResponse)
           }
         }

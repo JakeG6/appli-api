@@ -28,6 +28,8 @@ router.delete('/:ticket_id', passport.authenticate('jwt', { session: false }), (
             console.log("error: ", err)
           }
           else {
+            res.setHeader('Access-Control-Allow-Origin', 'https://appli-front.herokuapp.com/');
+
             res.send(dbResponse)
           }
         })
