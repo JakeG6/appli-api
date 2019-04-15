@@ -37,7 +37,6 @@ router.get('/:archived', passport.authenticate('jwt', { session: false }), (req,
           console.log("error: ", err)
         }
         else {
-          res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
           res.send(dbResponse)
         }
       })

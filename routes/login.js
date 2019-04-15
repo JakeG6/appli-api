@@ -63,7 +63,6 @@ router.post('/', function(req, res) {
           }
           else { 
             console.log('passwords do not match')
-            res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
             return res.status(404).json({username: `password doesn't match`})
           }

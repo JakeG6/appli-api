@@ -43,7 +43,6 @@ router.put('/', passport.authenticate('jwt', { session: false }), (req, res) => 
         
         if(err) {
           console.log(err); 
-          res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
           return res.send("Error: Incorrect Password")}
 
@@ -73,7 +72,6 @@ router.put('/', passport.authenticate('jwt', { session: false }), (req, res) => 
           });
         }
         else { 
-          res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
           return res.status(404).json({username: `password doesn't match`})
         }

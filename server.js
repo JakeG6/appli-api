@@ -28,11 +28,9 @@ app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 app.get('/auth/check', (req, res) => {
   if (!req.user) {
-    res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
     return res.sendStatus(401)
   } else {
-    res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
     return res.status(200).send(req.user)
   }
@@ -41,7 +39,6 @@ app.get('/auth/check', (req, res) => {
 //Hello world
 app.get('/', function (req, res) {
   console.log("hello, ", req.user)
-  res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
   res.send('the Appli API is functioning')
 })
@@ -54,21 +51,18 @@ app.use('/login', login);
 
 //Check if user is authorized
 app.get('/isauthorized', passport.authenticate('jwt', { session: false }), (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
   res.json(req.user)
 })
 
 //Check current user
 app.get('/currentuser', passport.authenticate('jwt', { session: false }), (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
   res.json(req.user)
 })
 
 //Attempt to log out
 app.get('/logout', function(req, res){
-  res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
   req.logout();
   res.redirect('/');
