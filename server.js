@@ -21,7 +21,6 @@ require('./passportStuff')
 const db = require('./db.js')
 
 app.use(cors())
-app.use(allowCrossDomain);
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", '*');
