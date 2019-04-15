@@ -37,7 +37,7 @@ router.post('/', (req, res) => {
             else {
               
               console.log(dbResponse)
-              res.setHeader('Access-Control-Allow-Origin', 'https://appli-front.herokuapp.com/');
+              res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
               res.send(dbResponse)
             }

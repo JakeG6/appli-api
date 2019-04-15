@@ -28,12 +28,12 @@ router.get('/:username', (req, res) => {
         }
         else{
           if (dbResponse[0]) {
-            res.setHeader('Access-Control-Allow-Origin', 'https://appli-front.herokuapp.com/');
+            res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
             res.send(false)
           }
           else {
-            res.setHeader('Access-Control-Allow-Origin', 'https://appli-front.herokuapp.com/');
+            res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
             res.send(true)}
         }

@@ -32,7 +32,7 @@ router.post('/', function(req, res) {
       if (err) throw err;
       
       if (username.length < 1) {
-        res.setHeader('Access-Control-Allow-Origin', 'https://appli-front.herokuapp.com/');
+        res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
         return res.status(404).send("password wasn't included")
 
@@ -55,7 +55,7 @@ router.post('/', function(req, res) {
   
             // Sign and send out the token
             jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
-              res.setHeader('Access-Control-Allow-Origin', 'https://appli-front.herokuapp.com/');
+              res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
               res.json({success: true, token:  token,})
             
@@ -63,7 +63,7 @@ router.post('/', function(req, res) {
           }
           else { 
             console.log('passwords do not match')
-            res.setHeader('Access-Control-Allow-Origin', 'https://appli-front.herokuapp.com/');
+            res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
             return res.status(404).json({username: `password doesn't match`})
           }
