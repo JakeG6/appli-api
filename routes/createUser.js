@@ -10,7 +10,7 @@ require('../passportStuff');
 
 const db = require('../db.js')
 
-router.use(cors())
+//router.use(cors())
 
 // parse application/x-www-form-urlencoded
 router.use(bodyParser.json()); // support json encoded bodies
