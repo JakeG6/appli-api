@@ -23,7 +23,7 @@ const db = require('./db.js')
 //app.use(cors())
 
 app.use(function(req, res, next) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://appli-front.herokuapp.com');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   
   //res.header("Access-Control-Allow-Origin", 'https://appli-front.herokuapp.com');
   res.header("Access-Control-Allow-Credentials", true);
