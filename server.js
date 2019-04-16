@@ -50,7 +50,7 @@ app.get('/auth/check', (req, res) => {
 app.get('/', function (req, res) {
   console.log("hello, ", req.user)
 
-  res.send('the Appli API is functioning')
+  res.send('the Appli API is functioning. The push worked.')
 })
 
 //Check if new username is unique
