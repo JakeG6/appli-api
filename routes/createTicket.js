@@ -12,8 +12,8 @@ const db = require('../db.js')
 //router.use(cors())
 
 // parse application/x-www-form-urlencoded
-router.use(bodyParser.json()); // support json encoded bodies
-router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+// router.use(bodyParser.json()); // support json encoded bodies
+// router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 router.post('/', (req, res) => {
     let userId = req.body.userId,

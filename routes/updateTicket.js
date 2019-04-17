@@ -12,8 +12,8 @@ const db = require('../db.js')
 //router.use(cors())
 
 // parse application/x-www-form-urlencoded
-router.use(bodyParser.json()); // support json encoded bodies
-router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
+// router.use(bodyParser.json()); // support json encoded bodies
+// router.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 router.put('/:ticket_id', passport.authenticate('jwt', { session: false }), (req, res) => {
     let ticketId = req.params.ticket_id,
