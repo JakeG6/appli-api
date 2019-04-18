@@ -64,7 +64,7 @@ router.post('/', function(req, res) {
   
             // Sign and send out the token
             jwt.sign(payload, keys.secretOrKey, { expiresIn: 3600 }, (err, token) => {
-              res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
+              //res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/');
 
               res.json({success: true, token:  token,})
             
