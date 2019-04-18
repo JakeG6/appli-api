@@ -20,8 +20,8 @@ require('./passportStuff')
 
 const db = require('./db.js')
 
-app.use(cors())
-app.use(require('./headers'))
+// app.use(cors())
+// app.use(require('./headers'))
 
 
 // app.use(function(req, res, next) {
