@@ -4,8 +4,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
 const keys = require('../keys')
 
-var cors = require('cors')
-
 const bodyParser = require('body-parser')
 require('../passportStuff');
 
@@ -14,14 +12,7 @@ const db = require('../db.js')
 //app.use(cors())
 
 
-router.use(cors())
-router.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", '*');
-  res.header("Access-Control-Allow-Credentials", true);
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
-  next()
-})
+
 
 // parse application/x-www-form-urlencoded
 // router.use(bodyParser.json()); // support json encoded bodies
