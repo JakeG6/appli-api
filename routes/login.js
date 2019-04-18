@@ -36,7 +36,7 @@ router.post('/', function(req, res) {
       if (err) throw err;
       
       if (username.length < 1) {
-        res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/login');
+        //res.setHeader('Access-Control-Allow-Origin', 'https://appli-api.herokuapp.com/login');
 
         return res.status(404).send("password wasn't included")
 
