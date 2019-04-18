@@ -24,15 +24,15 @@ app.use(cors())
 app.use(require('./headers'))
 
 
-app.use(function(req, res, next) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  //res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+// app.use(function(req, res, next) {
+//   //res.setHeader('Access-Control-Allow-Origin', '*');
+//   //res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
 
-  //res.header("Access-Control-Allow-Origin", 'https://appli-front.herokuapp.com');
-  // res.header("Access-Control-Allow-Credentials", true);
-  // res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
-  next();
-});
+//   //res.header("Access-Control-Allow-Origin", 'https://appli-front.herokuapp.com');
+//   // res.header("Access-Control-Allow-Credentials", true);
+//   // res.header("Access-Control-Allow-Headers", 'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json');
+//   next();
+// });
 
 //parse application/x-www-form-urlencoded
 app.use(bodyParser.json()); // support json encoded bodies
